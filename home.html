@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+    <title>Love-it Board</title>
     <link rel="stylesheet" href="style.css">
     <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
     ​<link href='https://fonts.googleapis.com/css?family=Sour Gummy' rel='stylesheet'>
@@ -13,6 +14,7 @@
     <h2>Love-it Board</h2>
     <button onclick="logout()">Log Out</button>
     <form id="postForm">
+      <div id="usernameDisplay"></div>
         <label for="title">Post your anonymous messages here</label>
         <input type="text" id="title" placeholder="What's on your mind?" required>
         <label for="receiver">To?</label>
@@ -46,9 +48,15 @@
   </script>
 
   <script>
+
+    
+
     auth.onAuthStateChanged((user) => {
   if (user) {
+    const displayName = user.displayName;
     console.log("User is signed in:", user.displayName);
+    
+    document.getElementById("usernameDisplay").innerText = `Welcome, ${displayName}!`;
     // Display user information, load user-specific content, etc.
   } else {
     console.log("No user is signed in.");
@@ -98,38 +106,73 @@ function logout() {
         // Attach the uploadData function to the form's submit event
         document.getElementById('postForm').addEventListener('submit', uploadData);
 
-        const displayPosts = () => {
+  const displayPosts = () => {
   const postsContainer = document.getElementById("posts-container");
 
   db.collection("posts")
-    .orderBy("timestamp", "desc")  // Order by timestamp in descending order (newest first)
+    .orderBy("timestamp", "desc")
     .get()
     .then((querySnapshot) => {
+      postsContainer.innerHTML = '';  // Clear previous posts
       if (querySnapshot.empty) {
         postsContainer.innerHTML = "<p>No posts available.</p>";
       } else {
         querySnapshot.forEach((doc) => {
           const postData = doc.data();
-          const postId = doc.id; // The document ID
+          const postId = doc.id;
+          const likeCount = postData.likes || 0; // Default to 0 if undefined
 
-          // Create a new div for the post
+          // Create the post div and heart button
           const postDiv = document.createElement("div");
           postDiv.classList.add("post");
           postDiv.id = postId;
           postDiv.innerHTML = `
             <h3>${postData.title}</h3>
-            <p>To: ${postData.receiver}</p>
-            <p><small>Posted by at ${postData.timestamp.toDate().toLocaleString()}</small></p>
+            <p>${postData.receiver}</p>
+            <p><small>Posted at ${postData.timestamp?.toDate().toLocaleString()}</small></p>
+            <button class="heart-btn" data-post-id="${postId}">
+              ❤️ <span class="like-count">${likeCount}</span>
+            </button>
           `;
 
-          // Append the post to the container
           postsContainer.appendChild(postDiv);
+        });
+
+        // Add click listeners for heart buttons after rendering posts
+        const heartButtons = document.querySelectorAll(".heart-btn");
+        heartButtons.forEach((button) => {
+          button.addEventListener("click", (e) => toggleLike(e));
         });
       }
     })
     .catch((error) => {
       console.error("Error fetching posts: ", error);
     });
+};
+        
+
+const toggleLike = (e) => {
+  const button = e.target;
+  const postId = button.getAttribute("data-post-id");
+  const postRef = db.collection("posts").doc(postId);
+
+  postRef.get().then((doc) => {
+    if (doc.exists) {
+      const currentLikes = doc.data().likes || 0;
+
+      // Increment the like count and update Firestore
+      postRef.update({
+        likes: currentLikes + 1
+      }).then(() => {
+        // Update the UI
+        const likeCountElement = button.querySelector(".like-count");
+        likeCountElement.textContent = currentLikes + 1;
+        button.classList.add("liked");  // Add 'liked' style
+      }).catch((error) => {
+        console.error("Error updating like count: ", error);
+      });
+    }
+  });
 };
 
 displayPosts(); // Direct call to the function
