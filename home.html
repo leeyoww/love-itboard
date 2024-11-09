@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
+    ​<link href='https://fonts.googleapis.com/css?family=Sour Gummy' rel='stylesheet'>
+    <link href='https://fonts.googleapis.com/css?family=Open Sans' rel='stylesheet'>
+</head>
+<body>
+    <h2>Love-it Board</h2>
+    <button onclick="logout()">Log Out</button>
+    <form id="postForm">
+        <label for="title">Post your anonymous messages here</label>
+        <input type="text" id="title" placeholder="What's on your mind?" required>
+        <label for="receiver">To?</label>
+        <input type="text" id="receiver" placeholder="Name here" required>
+        <button type="submit">Post</button>
+    </form>
+    <h2>Read the messages below</h2>
+    <div id="posts-container"></div>
+      <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+  <!-- Firebase Configuration -->
+  <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyBfPdkDg0TE9nypjCr9WDjHsDG6IGH2jLs",
+  authDomain: "e-deez-nuts.firebaseapp.com",
+  databaseURL: "https://e-deez-nuts-default-rtdb.firebaseio.com",
+  projectId: "e-deez-nuts",
+  storageBucket: "e-deez-nuts.appspot.com",
+  messagingSenderId: "697154537749",
+  appId: "1:697154537749:web:ecc196b856c431211f011c",
+  measurementId: "G-PK0S05RY3D"
+};
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+  </script>
+
+  <script>
+    auth.onAuthStateChanged((user) => {
+  if (user) {
+    console.log("User is signed in:", user.displayName);
+    // Display user information, load user-specific content, etc.
+  } else {
+    console.log("No user is signed in.");
+    // Optionally, redirect back to the login page
+    window.location.href = "index.html";
+  }
+});
+
+function logout() {
+  auth.signOut()
+    .then(() => {
+      console.log("User signed out successfully.");
+      window.location.href = "index.html"
+      // Optionally, redirect to a login page or show a confirmation message
+    })
+    .catch((error) => {
+      console.error("Error signing out:", error);
+    });
+}
+
+        // Function to upload data to Firestore
+        async function uploadData(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            // Get form data
+            const title = document.getElementById('title').value;
+            const receiver = document.getElementById('receiver').value;
+            const user = firebase.auth().currentUser ;
+
+            try {
+                // Add a new document with a generated ID
+                const docRef = await db.collection('posts').add({
+                    author: user.displayName,
+                    title: title,
+                    receiver: receiver,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log("Document written with ID: ", docRef.id);
+                // Optionally, reset the form
+                document.getElementById('postForm').reset();
+                window.location.reload()
+            } catch (error) {
+                console.error("Error adding document: ", error);
+            }
+        }
+
+        // Attach the uploadData function to the form's submit event
+        document.getElementById('postForm').addEventListener('submit', uploadData);
+
+        const displayPosts = () => {
+  const postsContainer = document.getElementById("posts-container");
+
+  db.collection("posts")
+    .orderBy("timestamp", "desc")  // Order by timestamp in descending order (newest first)
+    .get()
+    .then((querySnapshot) => {
+      if (querySnapshot.empty) {
+        postsContainer.innerHTML = "<p>No posts available.</p>";
+      } else {
+        querySnapshot.forEach((doc) => {
+          const postData = doc.data();
+          const postId = doc.id; // The document ID
+
+          // Create a new div for the post
+          const postDiv = document.createElement("div");
+          postDiv.classList.add("post");
+          postDiv.id = postId;
+          postDiv.innerHTML = `
+            <h3>${postData.title}</h3>
+            <p>To: ${postData.receiver}</p>
+            <p><small>Posted by at ${postData.timestamp.toDate().toLocaleString()}</small></p>
+          `;
+
+          // Append the post to the container
+          postsContainer.appendChild(postDiv);
+        });
+      }
+    })
+    .catch((error) => {
+      console.error("Error fetching posts: ", error);
+    });
+};
+
+displayPosts(); // Direct call to the function
+
+  </script>
+</body>
+</html>
