@@ -13,5 +13,5 @@ All messages are welcome. But hurtful, racist, cyberbullying, hate and other typ
 Please make sure to post appropriately.
 
 ## Contact and Support
-[Email](leeyow72@gmail.com)
+[Email](mailto:leeyow72@gmail.com)
 [Github](https://github.com/leeyoww)
