@@ -19,6 +19,11 @@
         <input type="text" id="title" placeholder="What's on your mind?" required>
         <label for="receiver">To?</label>
         <input type="text" id="receiver" placeholder="Name here" required>
+        <input type="text" id="spotify-search" placeholder="Search for a song">
+        <button id="search-button">Search</button>
+        <div id="search-results"></div>
+        <input type="hidden" id="selected-spotify-track">
+        <div id="selected-track-name"></div>
         <button type="submit">Post</button>
     </form>
     <h2>Read the messages below</h2>
@@ -27,6 +32,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 
   <!-- Firebase Configuration -->
   <script>
@@ -85,6 +92,8 @@ function logout() {
             const title = document.getElementById('title').value;
             const receiver = document.getElementById('receiver').value;
             const user = firebase.auth().currentUser ;
+            const spotifyUrl = document.getElementById("selected-spotify-track").value;
+            
 
             try {
                 // Add a new document with a generated ID
@@ -92,6 +101,7 @@ function logout() {
                     author: user.displayName,
                     title: title,
                     receiver: receiver,
+                    spotifyUrl: spotifyUrl || null, 
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 console.log("Document written with ID: ", docRef.id);
@@ -122,21 +132,31 @@ function logout() {
           const postId = doc.id;
           const likeCount = postData.likes || 0; // Default to 0 if undefined
 
+
           // Create the post div and heart button
           const postDiv = document.createElement("div");
           postDiv.classList.add("post");
-          postDiv.id = postId;
+          postDiv.id = `post-${postId}`; 
           postDiv.innerHTML = `
             <h3>${postData.title}</h3>
-            <p>${postData.receiver}</p>
+            <p>To: ${postData.receiver}</p>
             <p><small>Posted at ${postData.timestamp?.toDate().toLocaleString()}</small></p>
             <button class="heart-btn" data-post-id="${postId}">
               ❤️ <span class="like-count">${likeCount}</span>
             </button>
-          `;
+            <button class="screenshot-btn" data-post-id="${postId}">Take Screenshot</button>
+            <iframe id="player" style="border-radius:12px" src="${postData.spotifyUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+          ;
 
           postsContainer.appendChild(postDiv);
         });
+
+          // Add click listeners for screenshot buttons after rendering posts
+          const screenshotButtons = document.querySelectorAll(".screenshot-btn");
+        screenshotButtons.forEach((button) => {
+          button.addEventListener("click", (e) => captureScreenshot(e));
+        });
+
 
         // Add click listeners for heart buttons after rendering posts
         const heartButtons = document.querySelectorAll(".heart-btn");
@@ -150,6 +170,24 @@ function logout() {
     });
 };
         
+const captureScreenshot = (e) => {
+  const postId = e.target.getAttribute("data-post-id");
+  const postElement = document.getElementById(`post-${postId}`);
+
+  // Use html2canvas to capture the screenshot
+  html2canvas(postElement).then((canvas) => {
+    // Convert the canvas to a data URL and download it
+    const imgData = canvas.toDataURL("image/png");
+
+    // Create a temporary link to download the image
+    const downloadLink = document.createElement("a");
+    downloadLink.href = imgData;
+    downloadLink.download = `post-${postId}.png`; // File name for the download
+    downloadLink.click();
+  }).catch((error) => {
+    console.error("Error capturing screenshot: ", error);
+  });
+};
 
 const toggleLike = (e) => {
   const button = e.target;
@@ -177,6 +215,95 @@ const toggleLike = (e) => {
 
 displayPosts(); // Direct call to the function
 
+
+const getSpotifyToken = async () => {
+  const clientId = '8c46dbb99c9a41dfb86f83e769d677fa';
+  const clientSecret = 'f66a8f2b690b4bb08a36c01bd75e4a9e';
+  const authBase64 = btoa(`${clientId}:${clientSecret}`);
+
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${authBase64}`,
+    },
+    body: 'grant_type=client_credentials',
+  });
+
+  const data = await response.json();
+  return data.access_token;
+};
+
+const searchSpotifyTracks = async (query) => {
+  const token = await getSpotifyToken();
+  const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=5`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+  return data.tracks.items;
+};
+
+// Execute search when clicking the button
+document.getElementById('search-button').addEventListener('click', async () => {
+  const query = document.getElementById('spotify-search').value;
+  const resultsContainer = document.getElementById('search-results');
+  const tracks = await searchSpotifyTracks(query);
+
+  // Clear previous search results
+  resultsContainer.innerHTML = '';
+  
+  // Display search results
+  tracks.forEach((track) => {
+    const trackDiv = document.createElement('div');
+    trackDiv.innerHTML = `
+      <p>${track.name} by ${track.artists[0].name}</p>
+      <button onclick="selectTrack('${track.name}', '${track.uri}')">Select</button>
+    `;
+    resultsContainer.appendChild(trackDiv);
+  });
+});
+
+const selectTrack = (trackName, spotifyUri) => {
+  console.log("Selected Track URI:", spotifyUri);  // Debugging step
+  
+  if (!spotifyUri) {
+    console.error("Spotify URI is undefined or invalid.");
+    return;  // Prevent further errors if the URI is invalid
+  }
+
+  const trackId = spotifyUri.split(':')[2];  // Extract the track ID
+  const spotifyEmbedUrl = `https://open.spotify.com/embed/track/${trackId}`;
+  
+  // Log the embed URL to verify it's correct
+  console.log("Selected Track Embed URL:", spotifyEmbedUrl);
+  
+  // Store the embed URL in the hidden input field
+  document.getElementById('selected-spotify-track').value = spotifyEmbedUrl;
+  
+  // Only update the track name if the element exists
+  const trackNameElement = document.getElementById('selected-track-name');
+  if (trackNameElement) {
+    trackNameElement.innerText = `Selected track: ${trackName}`;
+  } else {
+    console.error("Element with ID 'selected-track-name' not found.");
+  }
+
+  // Update UI feedback
+  document.getElementById('search-results').innerHTML = `<p>Track selected: ${trackName}</p>`;
+};
+
+tracks.forEach((track) => {
+  console.log("Track data:", track);  // Log entire track object to check its structure
+  const trackDiv = document.createElement('div');
+  trackDiv.innerHTML = `
+    <p>${track.name} by ${track.artists[0].name}</p>
+    <button onclick="selectTrack('${track.name}', '${track.uri}')">Select</button>
+  `;
+  resultsContainer.appendChild(trackDiv);
+});
   </script>
 </body>
 </html>
