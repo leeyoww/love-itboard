@@ -153,8 +153,10 @@ function logout() {
           postsContainer.appendChild(postDiv);
         });
 
-        postElement.querySelector('#delete-btn').addEventListener('click', () => {
-      deletePost(post.id);
+        //Add event listener for the delete button
+    const deleteButton = postElement.querySelector('#delete-btn');
+    deleteButton.addEventListener('click', () => {
+      deletePost(post.id, postElement);  // Pass both postId and postElement
     });
 
           // Add click listeners for screenshot buttons after rendering posts
