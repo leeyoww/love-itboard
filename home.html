@@ -28,7 +28,10 @@
         <button type="submit">Post</button>
     </form>
     <h2>Read the messages below</h2>
-    <div id="posts-container"></div>
+    <button onclick="window.location.href = 'search.html'">Search for posts here</a></button>
+          <div id="posts-container">    
+    </div>
+  
       <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
@@ -305,24 +308,6 @@ tracks.forEach((track) => {
   `;
   resultsContainer.appendChild(trackDiv);
 });
-
-const deletePost = (postId) => {
-  const postRef = doc(db, 'posts', postId);
-
-  deleteDoc(postRef)
-    .then(() => {
-      console.log("Post deleted successfully");
-      // Remove the post from the DOM as well
-      const postElement = document.getElementById(postId);
-      if (postElement) {
-        postElement.remove();
-      }
-    })
-    .catch((error) => {
-      console.error("Error deleting post:", error);
-    });
-};
-
   </script>
 </body>
 </html>

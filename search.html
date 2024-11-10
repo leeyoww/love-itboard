@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+    <title>Search</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
+    ​<link href='https://fonts.googleapis.com/css?family=Sour Gummy' rel='stylesheet'>
+    <link href='https://fonts.googleapis.com/css?family=Open Sans' rel='stylesheet'>
+</head>
+<body>
+    <h2>Search the post for you</h2>
+    <div>
+        <input type="text" id="search-input" placeholder="Search by receiver name" />
+        <button id="search-btn">Search</button>
+        <button id="back-btn" style="display: none;">Back to All Posts</button>
+      </div>
+      <div id="posts-container"></div>
+      
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+
+  <!-- Firebase Configuration -->
+  <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyBfPdkDg0TE9nypjCr9WDjHsDG6IGH2jLs",
+  authDomain: "e-deez-nuts.firebaseapp.com",
+  databaseURL: "https://e-deez-nuts-default-rtdb.firebaseio.com",
+  projectId: "e-deez-nuts",
+  storageBucket: "e-deez-nuts.appspot.com",
+  messagingSenderId: "697154537749",
+  appId: "1:697154537749:web:ecc196b856c431211f011c",
+  measurementId: "G-PK0S05RY3D"
+};
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+// Initialize Firestore
+const db = firebase.firestore();
+
+        auth.onAuthStateChanged((user) => {
+  if (user) {
+    const displayName = user.displayName;
+    console.log("User is signed in:", user.displayName);
+    // Display user information, load user-specific content, etc.
+  } else {
+    console.log("No user is signed in.");
+    // Optionally, redirect back to the login page
+    window.location.href = "index.html";
+  }
+});
+
+
+document.addEventListener("DOMContentLoaded", function() {
+  const searchInput = document.getElementById('search-input');
+  const searchBtn = document.getElementById('search-btn');
+  const backBtn = document.getElementById('back-btn');
+  const postsContainer = document.getElementById('posts-container');
+
+  searchBtn.addEventListener('click', () => {
+    const receiverName = searchInput.value.trim();
+    if (receiverName) {
+      searchPostsByReceiver(receiverName);
+    }
+  });
+
+  backBtn.addEventListener('click', () => {
+    window.location.href = 'home.html'; // Redirect to home page
+  });
+
+  const searchPostsByReceiver = async (receiverName) => {
+    postsContainer.innerHTML = 'Loading...';
+
+    try {
+      // Query Firestore for posts by receiver
+      const postsQuery = db.collection('posts').where('receiver', '==', receiverName);
+      const querySnapshot = await postsQuery.get();
+
+      const posts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (posts.length === 0) {
+        postsContainer.innerHTML = '<p>No posts found for this receiver.</p>';
+      } else {
+        displayPosts(posts);
+        backBtn.style.display = 'block';
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      postsContainer.innerHTML = '<p>Error fetching posts.</p>';
+    }
+  };
+
+      const displayPosts = (posts) => {
+        postsContainer.innerHTML = ''; // Clear previous content
+        posts.forEach(post => {
+          const postElement = document.createElement('div');
+          postElement.classList.add('post');
+          postElement.id = post.id;
+          postElement.innerHTML = `
+            <h3>${post.title}</h3>
+            <p>To: ${post.receiver}</p>
+            <p><em>Posted on: ${new Date(post.timestamp.toDate()).toLocaleString()}</em></p>
+            <iframe id="player" style="border-radius:12px" src="${post.spotifyUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+          `;
+          postsContainer.appendChild(postElement);
+        });
+      };
+    });
+  </script>
+</body>
+</html>
