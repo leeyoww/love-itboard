@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
+    ​<link href='https://fonts.googleapis.com/css?family=Sour Gummy' rel='stylesheet'>
+    <link href='https://fonts.googleapis.com/css?family=Open Sans' rel='stylesheet'>
+</head>
+<body>
+    <div id="post-content">Loading post...</div>
+<script>
+        const firebaseConfig = {
+  apiKey: "AIzaSyBfPdkDg0TE9nypjCr9WDjHsDG6IGH2jLs",
+  authDomain: "e-deez-nuts.firebaseapp.com",
+  databaseURL: "https://e-deez-nuts-default-rtdb.firebaseio.com",
+  projectId: "e-deez-nuts",
+  storageBucket: "e-deez-nuts.appspot.com",
+  messagingSenderId: "697154537749",
+  appId: "1:697154537749:web:ecc196b856c431211f011c",
+  measurementId: "G-PK0S05RY3D"
+};
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+</script>
+<script>
+  // Parse the document ID from the URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const docId = urlParams.get("id");
+
+  if (docId) {
+    fetchPost(docId);
+  } else {
+    document.getElementById("post-content").innerHTML = "No post found.";
+  }
+
+  async function fetchPost(docId) {
+    try {
+      const postRef = firestore.collection("posts").doc(docId);
+      const postDoc = await postRef.get();
+      
+      if (postDoc.exists) {
+        const postData = postDoc.data();
+        displayPost(postData);
+      } else {
+        document.getElementById("post-content").innerHTML = "Post not found.";
+      }
+    } catch (error) {
+      console.error("Error fetching post:", error);
+      document.getElementById("post-content").innerHTML = "Error loading post.";
+    }
+  }
+
+  function displayPost(postData) {
+    const postContent = document.getElementById("post-content");
+    postContent.innerHTML = `
+ <h3>${postData.title}</h3>
+            <p>To: ${postData.receiver}</p>
+            <p><small>Posted at ${postData.timestamp?.toDate().toLocaleString()}</small></p>
+            <button class="heart-btn" data-post-id="${postId}">
+              ❤️ <span class="like-count">${likeCount}</span>
+            </button>
+            <button class="screenshot-btn" data-post-id="${postId}">Take Screenshot</button>
+            <iframe id="player" style="border-radius:12px" src="${postData.spotifyUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>;
+    `;
+  }
+</script>
+
+</body>
+</html>

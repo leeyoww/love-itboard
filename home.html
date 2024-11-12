@@ -150,6 +150,7 @@ function logout() {
             </button>
             <button class="screenshot-btn" data-post-id="${postId}">Take Screenshot</button>
             <iframe id="player" style="border-radius:12px" src="${postData.spotifyUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>;
+           <button onclick="sharePost('${postId}')">Share Post</button>
             `
           postsContainer.appendChild(postDiv);
         });
@@ -308,6 +309,17 @@ tracks.forEach((track) => {
   `;
   resultsContainer.appendChild(trackDiv);
 });
+
+function sharePost(docId) {
+    const url = `${window.location.origin}/post.html?id=${docId}`;
+    
+    // Copy URL to clipboard
+    navigator.clipboard.writeText(url).then(() => {
+      alert("Post link copied to clipboard!");
+    }).catch(error => {
+      console.error("Error copying link:", error);
+    });
+  }
   </script>
 </body>
 </html>
