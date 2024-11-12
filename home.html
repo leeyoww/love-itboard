@@ -105,7 +105,7 @@ function logout() {
                     author: user.displayName,
                     title: title,
                     receiver: receiver,
-                    spotifyUrl: spotifyUrl || null, 
+                    spotifyUrl: spotifyUrl || 'no music selected', 
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 console.log("Document written with ID: ", docRef.id);
@@ -311,7 +311,7 @@ tracks.forEach((track) => {
 });
 
 function sharePost(docId) {
-    const url = `${window.location.origin}/love-itboard/links.html?id=${docId}`;
+    const url = `${window.location.origin}/links.html?id=${docId}`;
     
     // Copy URL to clipboard
     navigator.clipboard.writeText(url).then(() => {
