@@ -10,7 +10,12 @@
     <link href='https://fonts.googleapis.com/css?family=Open Sans' rel='stylesheet'>
 </head>
 <body>
-    <div id="post-content">Loading post...</div>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <h2>Love-it Board</h2>
+    <button id="back-btn" >Back to All Posts</button>
+    <div class="post" id="postContainer">Loading post...</div>
 <script>
         const firebaseConfig = {
   apiKey: "AIzaSyBfPdkDg0TE9nypjCr9WDjHsDG6IGH2jLs",
@@ -29,46 +34,56 @@
     const db = firebase.firestore();
 </script>
 <script>
-  // Parse the document ID from the URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const docId = urlParams.get("id");
-
-  if (docId) {
-    fetchPost(docId);
-  } else {
-    document.getElementById("post-content").innerHTML = "No post found.";
-  }
-
-  async function fetchPost(docId) {
-    try {
-      const postRef = firestore.collection("posts").doc(docId);
-      const postDoc = await postRef.get();
-      
-      if (postDoc.exists) {
-        const postData = postDoc.data();
-        displayPost(postData);
-      } else {
-        document.getElementById("post-content").innerHTML = "Post not found.";
-      }
-    } catch (error) {
-      console.error("Error fetching post:", error);
-      document.getElementById("post-content").innerHTML = "Error loading post.";
+    const backBtn = document.getElementById('back-btn');
+  backBtn.addEventListener('click', () => {
+    window.location.href = 'home.html'; // Redirect to home page
+  });
+    // Function to get post ID from the URL
+    function getPostIdFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const postId = params.get('id');
+      console.log("Retrieved Post ID from URL:", postId);
+      return postId;
     }
-  }
 
-  function displayPost(postData) {
-    const postContent = document.getElementById("post-content");
-    postContent.innerHTML = `
- <h3>${postData.title}</h3>
+      // Function to retrieve and display the post
+      async function displayPost() {
+      const postId = getPostIdFromUrl();
+      if (!postId) {
+        console.log("No Post ID found in URL.");
+        document.getElementById('postContainer').innerText = 'Post ID not found in URL.';
+        return;
+      }
+
+      try {
+        console.log("Fetching post with ID:", postId);
+        const postRef = db.collection('posts').doc(postId);
+        const doc = await postRef.get();
+
+        if (doc.exists) {
+          const postData = doc.data();
+          console.log("Post data retrieved:", postData);
+          document.getElementById('postContainer').innerHTML = `
+            <h3>${postData.title}</h3>
             <p>To: ${postData.receiver}</p>
-            <p><small>Posted at ${postData.timestamp?.toDate().toLocaleString()}</small></p>
-            <button class="heart-btn" data-post-id="${postId}">
-              ❤️ <span class="like-count">${likeCount}</span>
-            </button>
-            <button class="screenshot-btn" data-post-id="${postId}">Take Screenshot</button>
-            <iframe id="player" style="border-radius:12px" src="${postData.spotifyUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>;
-    `;
-  }
+            <p><strong>Date:</strong> ${postData.timestamp.toDate().toLocaleString()}</p>
+            <iframe id="player" style="border-radius:12px" src="${postData.spotifyUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+          `;
+        } else {
+          console.log("No document found for the given Post ID.");
+          document.getElementById('postContainer').innerText = 'Post not found.';
+        }
+      } catch (error) {
+        console.error("Error fetching post:", error);
+        document.getElementById('postContainer').innerText = 'Error retrieving post data.';
+      }
+    }
+
+    // Call the displayPost function on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log("DOM fully loaded and parsed. Starting to display post.");
+      displayPost();
+    });
 </script>
 
 </body>
