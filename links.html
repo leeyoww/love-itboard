@@ -67,7 +67,11 @@
             <h3>${postData.title}</h3>
             <p>To: ${postData.receiver}</p>
             <p><strong>Date:</strong> ${postData.timestamp.toDate().toLocaleString()}</p>
-            <iframe id="player" style="border-radius:12px" src="${postData.spotifyUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+              ${
+                            postData.spotifyUrl && postData.spotifyUrl !== "no music selected"
+                                ? `<iframe id="player" style="border-radius:12px" src="${postData.spotifyUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`
+                                : `<p>No music selected</p>`
+                        }
           `;
         } else {
           console.log("No document found for the given Post ID.");
