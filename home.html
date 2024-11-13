@@ -12,7 +12,8 @@
 </head>
 <body>
     <h2>Love-it Board</h2>
-    <button onclick="logout()">Log Out</button>
+    <button id="logout" onclick="logout()">Logout</button>
+    <button id="login" onclick="window.location.href = 'index.html'">Login</button>
     <form id="postForm">
       <div id="usernameDisplay"></div> 
         <label for="search">Search here</label>
@@ -63,6 +64,7 @@
     
 
     auth.onAuthStateChanged((user) => {
+      const logoutBtn = document.getElementById('logout');
   if (user) {
     const displayName = user.displayName;
     console.log("User is signed in:", user.displayName);
@@ -72,15 +74,36 @@
   } else {
     console.log("No user is signed in.");
     // Optionally, redirect back to the login page
-    window.location.href = "index.html";
+    document.getElementById("usernameDisplay").innerText = `Welcome, Guest!`;
+    logoutBtn.style.display = 'none';
   }
 });
 
+
+// Function to toggle login button visibility based on authentication status
+function toggleLoginButton() {
+    const loginButton = document.getElementById('login');
+
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // Hide login button if the user is signed in
+            loginButton.style.display = 'none';
+        } else {
+            // Show login button if no user is signed in
+            loginButton.style.display = 'block';
+        }
+    });
+}
+
+// Call the function on page load
+document.addEventListener('DOMContentLoaded', toggleLoginButton);
+
 function logout() {
+  
   auth.signOut()
     .then(() => {
       console.log("User signed out successfully.");
-      window.location.href = "index.html"
+      window.reload;
       // Optionally, redirect to a login page or show a confirmation message
     })
     .catch((error) => {
@@ -88,38 +111,44 @@ function logout() {
     });
 }
 
-        // Function to upload data to Firestore
-        async function uploadData(event) {
-            event.preventDefault(); // Prevent the default form submission
+ // Function to upload data to Firestore
+async function uploadData(event) {
+    event.preventDefault(); // Prevent the default form submission
 
-            // Get form data
-            const title = document.getElementById('title').value;
-            const receiver = document.getElementById('receiver').value;
-            const user = firebase.auth().currentUser ;
-            const spotifyUrl = document.getElementById("selected-spotify-track").value;
-            
+    // Check if the user is logged in
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert("You must be logged in to post.");
+        window.location.href = "index.html"; // Redirect to login page if not logged in
+        return;
+    }
 
-            try {
-                // Add a new document with a generated ID
-                const docRef = await db.collection('posts').add({
-                    author: user.displayName,
-                    title: title,
-                    receiver: receiver,
-                    spotifyUrl: spotifyUrl || 'no music selected', 
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                console.log("Document written with ID: ", docRef.id);
-                // Optionally, reset the form
-                document.getElementById('postForm').reset();
-                window.location.reload()
-            } catch (error) {
-                console.error("Error adding document: ", error);
-            }
-        }
+    // Get form data
+    const title = document.getElementById('title').value;
+    const receiver = document.getElementById('receiver').value;
+    const spotifyUrl = document.getElementById("selected-spotify-track").value;
 
-        // Attach the uploadData function to the form's submit event
-        document.getElementById('postForm').addEventListener('submit', uploadData);
+    try {
+        // Add a new document with a generated ID
+        const docRef = await db.collection('posts').add({
+            author: user.displayName,
+            title: title,
+            receiver: receiver,
+            spotifyUrl: spotifyUrl || 'no music selected', 
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log("Document written with ID: ", docRef.id);
+        
+        // Optionally, reset the form
+        document.getElementById('postForm').reset();
+        window.location.reload();
+    } catch (error) {
+        console.error("Error adding document: ", error);
+    }
+}
 
+// Attach the modified uploadData function to the form's submit event
+document.getElementById('postForm').addEventListener('submit', uploadData);
   const displayPosts = () => {
   const postsContainer = document.getElementById("posts-container");
 
